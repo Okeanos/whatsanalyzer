@@ -14,7 +14,7 @@ public class MainTest {
 
     @Test
     public void testMainHappyCase() {
-        Main.main(new String[]{PATH, "Okeanos", "Hyperion"});
+        Main.main(new String[]{PATH, "2015, 2016", "Okeanos", "Hyperion"});
     }
 
     @Test(expected = InvalidParameterException.class)
@@ -24,7 +24,7 @@ public class MainTest {
 
     @Test(expected = InvalidParameterException.class)
     public void testMainFileNotFound() {
-        Main.main(new String[]{PATH + " text", "Okeanos", "Hyperion"});
+        Main.main(new String[]{PATH + " text", "2015, 2016", "Okeanos", "Hyperion"});
     }
 
     @Test

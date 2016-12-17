@@ -7,6 +7,7 @@ import org.junit.Test;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -18,8 +19,9 @@ import static org.hamcrest.core.IsEqual.equalTo;
 public class PersonTest {
 
     private static final String PERSON_A = "Okeanos";
-    //private static final String PERSON_B = "Hyperion";
     private static final String PERSON_C = "Phoibe";
+    private static final Locale LOCALE = Locale.ENGLISH;
+    private static final List<String> YEARS = new ArrayList<>();
     private static final List<String> RAW_MESSAGES = new ArrayList<>();
     private static final List<String> RAW_MESSAGES_PERSON_A = new ArrayList<>();
     private static final List<List<String>> RAW_MESSAGES_PERSON_A_MONTHLY = new ArrayList<>();
@@ -27,30 +29,35 @@ public class PersonTest {
     private static final List<Integer> MESSAGES_PERSON_A_MONTHLY_COUNT = new ArrayList<>();
     private static final List<Integer> WORDS_PERSON_A_MONTHLY_COUNT = new ArrayList<>();
     private static final List<Integer> SENTENCES_PERSON_A_MONTHLY_COUNT = new ArrayList<>();
-    private static final List<String> RAW_MESSAGES_PERSON_B = new ArrayList<>();
 
     @BeforeClass
     public static void initTest() {
-        RAW_MESSAGES.add("27/01/2016, 21:58:27: Okeanos: Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
-                         + "Phasellus pretium, odio sed gravida finibus, felis ipsum eleifend felis, "
-                         + "sit amet consequat elit enim sed libero.");
+        RAW_MESSAGES.add("27/01/2015, 21:58:27: Okeanos: Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
+        RAW_MESSAGES.add("27/01/2015, 21:59:18: Hyperion: Pellentesque a justo id ipsum elementum vestibulum nec "
+                         + "non nibh.");
+        RAW_MESSAGES.add("27/02/2015, 21:59:55: Okeanos: Nulla facilisis, dui vitae tempus dignissim, lorem diam "
+                         + "dictum eros.");
+        RAW_MESSAGES.add("27/02/2015, 22:33:52: Hyperion: Proin in elit porta, mollis nulla sed, congue nisl.");
+        RAW_MESSAGES.add("28/04/2015, 09:14:11: Hyperion: Etiam massa orci, gravida ut nunc nec, hendrerit mollis "
+                         + "ante.");
+        RAW_MESSAGES.add("28/04/2015, 09:15:16: Okeanos: Mauris quis diam vestibulum, aliquet magna at, porta turpis.");
+        RAW_MESSAGES.add("28/08/2015, 11:57:37: Hyperion: Suspendisse quis ante enim. Maecenas imperdiet diam nulla.");
+        RAW_MESSAGES.add("27/01/2016, 21:58:27: Okeanos: Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
         RAW_MESSAGES.add("27/01/2016, 21:59:18: Hyperion: Pellentesque a justo id ipsum elementum vestibulum nec "
-                         + "non nibh. Pellentesque auctor quis nunc quis porta. Fusce eu aliquam lorem.");
+                         + "non nibh.");
         RAW_MESSAGES.add("27/02/2016, 21:59:55: Okeanos: Nulla facilisis, dui vitae tempus dignissim, lorem diam "
-                         + "dictum eros, id pharetra felis justo et ante. Nam fermentum mauris in mi iaculis, "
-                         + "sed dictum ligula porta.");
-        RAW_MESSAGES.add("27/02/2016, 22:33:52: Hyperion: Proin in elit porta, mollis nulla sed, congue nisl. "
-                         + "Sed fringilla luctus lorem. Morbi nec feugiat nisi.");
+                         + "dictum eros.");
+        RAW_MESSAGES.add("27/02/2016, 22:33:52: Hyperion: Proin in elit porta, mollis nulla sed, congue nisl.");
         RAW_MESSAGES.add("28/04/2016, 09:14:11: Hyperion: Etiam massa orci, gravida ut nunc nec, hendrerit mollis "
-                         + "ante. Maecenas augue urna, fringilla ut lorem eget, volutpat dapibus tortor.");
-        RAW_MESSAGES.add("28/04/2016, 09:15:16: Okeanos: Mauris quis diam vestibulum, aliquet magna at, porta turpis. "
-                         + "Phasellus dictum nibh eget nulla commodo dignissim. "
-                         + "Vestibulum gravida viverra ligula, vitae condimentum urna viverra vitae.");
+                         + "ante.");
+        RAW_MESSAGES.add("28/04/2016, 09:15:16: Okeanos: Mauris quis diam vestibulum, aliquet magna at, porta turpis.");
         RAW_MESSAGES.add("28/08/2016, 11:57:37: Hyperion: Suspendisse quis ante enim. Maecenas imperdiet diam nulla.");
-        RAW_MESSAGES.add("28/08/2016, 13:57:37: Hyperion: <\u200Eimage omitted>");
+        RAW_MESSAGES.add("28/09/2016, 12:57:37: Hyperion: <\u200Eimage omitted>");
+
+        YEARS.add("2015");
+        YEARS.add("2016");
 
         initPersonA();
-        initPersonB();
     }
 
     private static void initPersonA() {
@@ -63,68 +70,25 @@ public class PersonTest {
                 SENTENCES_PERSON_A_MONTHLY_COUNT.add(0);
             });
 
+        RAW_MESSAGES_PERSON_A.add("27/01/2015, 21:58:27: Okeanos: Lorem ipsum dolor sit amet, consectetur adipiscing "
+                                  + "elit.");
+        RAW_MESSAGES_PERSON_A.add("27/02/2015, 21:59:55: Okeanos: Nulla facilisis, dui vitae tempus dignissim, lorem "
+                                  + "diam "
+                                  + "dictum eros.");
+        RAW_MESSAGES_PERSON_A.add("28/04/2015, 09:15:16: Okeanos: Mauris quis diam vestibulum, aliquet magna at, "
+                                  + "porta turpis.");
         RAW_MESSAGES_PERSON_A.add("27/01/2016, 21:58:27: Okeanos: Lorem ipsum dolor sit amet, consectetur adipiscing "
-                                  + "elit. Phasellus pretium, odio sed gravida finibus, felis ipsum eleifend felis, "
-                                  + "sit amet consequat elit enim sed libero.");
+                                  + "elit.");
         RAW_MESSAGES_PERSON_A.add("27/02/2016, 21:59:55: Okeanos: Nulla facilisis, dui vitae tempus dignissim, lorem "
-                                  + "diam dictum eros, id pharetra felis justo et ante. Nam fermentum mauris in mi "
-                                  + "iaculis, sed dictum ligula porta.");
-        RAW_MESSAGES_PERSON_A.add("28/04/2016, 09:15:16: Okeanos: Mauris quis diam vestibulum, aliquet magna at, porta "
-                                  + "turpis. Phasellus dictum nibh eget nulla commodo dignissim. Vestibulum gravida "
-                                  + "viverra ligula, vitae condimentum urna viverra vitae.");
-
-        RAW_MESSAGES_PERSON_A_MONTHLY.get(0).add("27/01/2016, 21:58:27: Okeanos: Lorem ipsum dolor sit amet, "
-                                                 + "consectetur adipiscing elit. Phasellus pretium, odio sed gravida "
-                                                 + "finibus, felis ipsum eleifend felis, sit amet consequat elit enim "
-                                                 + "sed libero.");
-        RAW_MESSAGES_PERSON_A_MONTHLY.get(1).add("27/02/2016, 21:59:55: Okeanos: Nulla facilisis, dui vitae tempus "
-                                                 + "dignissim, lorem diam dictum eros, id pharetra felis justo et "
-                                                 + "ante. Nam fermentum mauris in mi iaculis, sed dictum ligula "
-                                                 + "porta.");
-        RAW_MESSAGES_PERSON_A_MONTHLY.get(3).add("28/04/2016, 09:15:16: Okeanos: Mauris quis diam vestibulum, aliquet "
-                                                 + "magna at, porta turpis. Phasellus dictum nibh eget nulla commodo "
-                                                 + "dignissim. Vestibulum gravida viverra ligula, vitae condimentum "
-                                                 + "urna viverra vitae.");
-
-        MESSAGES_PERSON_A_MONTHLY_COUNT.set(0, 1);
-        MESSAGES_PERSON_A_MONTHLY_COUNT.set(1, 1);
-        MESSAGES_PERSON_A_MONTHLY_COUNT.set(3, 1);
-
-        WORDS_PERSON_A_MONTHLY_COUNT.set(0, 25);
-        WORDS_PERSON_A_MONTHLY_COUNT.set(1, 26);
-        WORDS_PERSON_A_MONTHLY_COUNT.set(3, 25);
-
-        SENTENCES_PERSON_A_MONTHLY_COUNT.set(0, 2);
-        SENTENCES_PERSON_A_MONTHLY_COUNT.set(1, 2);
-        SENTENCES_PERSON_A_MONTHLY_COUNT.set(3, 3);
-
-        MESSAGES_PERSON_A_MONTHLY.get(0).add("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus "
-                                             + "pretium, odio sed gravida finibus, felis ipsum eleifend felis, sit "
-                                             + "amet consequat elit enim sed libero.");
-        MESSAGES_PERSON_A_MONTHLY.get(1).add("Nulla facilisis, dui vitae tempus dignissim, lorem diam dictum eros, "
-                                             + "id pharetra felis justo et ante. Nam fermentum mauris in mi iaculis, "
-                                             + "sed dictum ligula porta.");
-        MESSAGES_PERSON_A_MONTHLY.get(3).add("Mauris quis diam vestibulum, aliquet magna at, porta turpis. Phasellus "
-                                             + "dictum nibh eget nulla commodo dignissim. Vestibulum gravida viverra "
-                                             + "ligula, vitae condimentum urna viverra vitae.");
-    }
-
-    private static void initPersonB() {
-        RAW_MESSAGES_PERSON_B.add("27/01/2016, 21:59:18: Hyperion: Pellentesque a justo id ipsum elementum vestibulum "
-                                  + "nec non nibh. Pellentesque auctor quis nunc quis porta. Fusce eu aliquam lorem.");
-        RAW_MESSAGES_PERSON_B.add("27/02/2016, 22:33:52: Hyperion: Proin in elit porta, mollis nulla sed, congue nisl. "
-                                  + "Sed fringilla luctus lorem. Morbi nec feugiat nisi.");
-        RAW_MESSAGES_PERSON_B.add("28/04/2016, 09:14:11: Hyperion: Etiam massa orci, gravida ut nunc nec, hendrerit "
-                                  + "mollis ante. Maecenas augue urna, fringilla ut lorem eget, "
-                                  + "volutpat dapibus tortor.");
-        RAW_MESSAGES_PERSON_B.add("28/08/2016, 11:57:37: Hyperion: Suspendisse quis ante enim. Maecenas imperdiet "
-                                  + "diam nulla.");
-        RAW_MESSAGES_PERSON_B.add("28/08/2016, 13:57:37: Hyperion: <\u200Eimage omitted>");
+                                  + "diam "
+                                  + "dictum eros.");
+        RAW_MESSAGES_PERSON_A.add("28/04/2016, 09:15:16: Okeanos: Mauris quis diam vestibulum, aliquet magna at, "
+                                  + "porta turpis.");
     }
 
     @Test
     public void testHappyCase() {
-        final Person person = new Person(PERSON_A, RAW_MESSAGES);
+        final Person person = new Person(PERSON_A, YEARS, RAW_MESSAGES, LOCALE);
 
         assertThat("Name is not correct", person.getName(), equalTo(PERSON_A));
         assertThat("Raw history is not correct", person.getRawHistory(),
@@ -152,22 +116,22 @@ public class PersonTest {
         final List<String> emptyList = new ArrayList<>();
         emptyList.add("");
 
-        assertEmptyValues(PERSON_A, new Person(PERSON_A, emptyList));
+        assertEmptyValues(PERSON_A, new Person(PERSON_A, YEARS, emptyList, LOCALE));
     }
 
     @Test
     public void testMissingPerson() {
-        assertEmptyValues(PERSON_C, new Person(PERSON_C, RAW_MESSAGES));
+        assertEmptyValues(PERSON_C, new Person(PERSON_C, YEARS, RAW_MESSAGES, LOCALE));
     }
 
     @Test(expected = InvalidParameterException.class)
     public void testEmptyHistory() {
-        new Person(PERSON_A, new ArrayList<>());
+        new Person(PERSON_A, YEARS, new ArrayList<>(), LOCALE);
     }
 
     @Test(expected = InvalidParameterException.class)
     public void testNullHistory() {
-        new Person(PERSON_A, null);
+        new Person(PERSON_A, YEARS, null, LOCALE);
     }
 
     @Test
@@ -178,12 +142,40 @@ public class PersonTest {
 
     @Test(expected = InvalidParameterException.class)
     public void testEmptyName() {
-        new Person("", RAW_MESSAGES);
+        new Person("", YEARS, RAW_MESSAGES, LOCALE);
     }
 
     @Test(expected = InvalidParameterException.class)
     public void testNullName() {
-        new Person(null, RAW_MESSAGES);
+        new Person(null, YEARS, RAW_MESSAGES, LOCALE);
+    }
+
+    @Test(expected = InvalidParameterException.class)
+    public void testEmptyYears() {
+        new Person(PERSON_A, new ArrayList<>(), RAW_MESSAGES, LOCALE);
+    }
+
+    @Test(expected = InvalidParameterException.class)
+    public void testNullYears() {
+        new Person(PERSON_A, null, RAW_MESSAGES, LOCALE);
+    }
+
+    @Test(expected = InvalidParameterException.class)
+    public void testYearsInvalidA() {
+        final List<String> years = new ArrayList<>();
+        years.add("2015");
+        years.add("2016");
+        years.add("201a");
+        new Person(PERSON_A, years, RAW_MESSAGES, LOCALE);
+    }
+
+    @Test(expected = InvalidParameterException.class)
+    public void testYearsInvalidB() {
+        final List<String> years = new ArrayList<>();
+        years.add("2015");
+        years.add("2016");
+        years.add("2018,");
+        new Person(PERSON_A, years, RAW_MESSAGES, LOCALE);
     }
 
     private void assertEmptyValues(final String name, final Person person) {

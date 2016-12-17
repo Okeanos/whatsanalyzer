@@ -11,9 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,29 +35,33 @@ public class Person {
      */
     private final String name;
     /**
+     * The years to consider in the history.
+     */
+    private final List<String> years;
+    /**
      * The full chat history as list of strings, one line per message.
      */
     private final List<String> rawHistory;
     /**
-     * The chat history split into months, one list of strings per month.
+     * The chat history split into years, months, one list of strings per year-month.
      */
-    private final List<List<String>> monthlyRawHistory = new ArrayList<>(NUM_OF_MONTHS);
+    private final Map<String, List<String>> monthlyRawHistory = new HashMap<>();
     /**
-     * The chat history split into months, one list of strings per month with date, time: author: stripped.
+     * The chat history split into years, months, one list of strings per year-month with date, time: author: stripped.
      */
-    private final List<List<String>> monthlyHistory = new ArrayList<>(NUM_OF_MONTHS);
+    private final Map<String, List<String>> monthlyHistory = new HashMap<>();
     /**
-     * Number of messages a person sent per month.
+     * Number of messages a person sent per year-month.
      */
-    private final List<Integer> monthlyMessageCounts = new ArrayList<>(NUM_OF_MONTHS);
+    private final Map<String, Integer> monthlyMessageCounts = new HashMap<>();
     /**
-     * Number of words written per month.
+     * Number of words written per year-month.
      */
-    private final List<Integer> monthlyWordCounts = new ArrayList<>(NUM_OF_MONTHS);
+    private final Map<String, Integer> monthlyWordCounts = new HashMap<>();
     /**
-     * Number of sentences written per month.
+     * Number of sentences written per year-month.
      */
-    private final List<Integer> monthlySentenceCounts = new ArrayList<>(NUM_OF_MONTHS);
+    private final Map<String, Integer> monthlySentenceCounts = new HashMap<>();
 
     /**
      * Create statistics for the person in the history.
@@ -67,48 +69,50 @@ public class Person {
      * @param name    name to build the statistics for
      * @param history the history to parse
      */
-    public Person(final String name, final List<String> history) {
+    public Person(final String name, final List<String> years, final List<String> history, final Locale locale) {
         this.name = validateName(name);
+        this.years = validateYears(years);
         rawHistory = validateHistory(history).stream().
             filter(l -> l.matches("^[\\d:/, ]+" + name + ": .*"))
             .collect(Collectors.toList());
 
-        IntStream.range(0, NUM_OF_MONTHS)
-            .forEach(i -> {
-                final String month = StringUtils.leftPad(Integer.toString(i + 1), 2, '0');
-                monthlyRawHistory.add(rawHistory.stream()
-                    .filter(line -> getPatternForMonth(month).matcher(line).find())
-                    .map(l -> l.replace("<\u200Eimage omitted>", "").trim())
-                    .collect(Collectors.toList()));
-                monthlyHistory.add(monthlyRawHistory.get(i).parallelStream()
-                    .map(line -> getPatternForStripping().matcher(line).replaceAll(""))
-                    .collect(Collectors.toList()));
-                monthlyMessageCounts.add(monthlyRawHistory.get(i).size());
-                // count words based on unicode \W non word character splits
-                /*
-                monthlyWordCounts.add(monthlyRawHistory.get(i).stream()
-                        .map(line -> getPatternForStripping().matcher(line).replaceAll(""))
-                        .map(line -> Pattern.compile("\\W+", UNICODE_CHARACTER_CLASS).split(line))
-                        .map(words -> words.length)
-                        .reduce(0, (a, b) -> a + b));
-                */
-                // cue.language word counting
-                final Counter<String> words = new Counter<>();
-                new WordIterator(monthlyHistory.get(i).parallelStream()
-                    .collect(Collectors.joining()))
-                    .forEach(words::note);
-                monthlyWordCounts.add(words.getTotalItemCount());
-                // count sentences
-                final Counter<String> sentences = new Counter<>();
-                new SentenceIterator(monthlyHistory.get(i).parallelStream()
-                    .collect(Collectors.joining()), Locale.GERMAN)
-                    .forEach(sentences::note);
-                monthlySentenceCounts.add(sentences.getTotalItemCount());
-            });
+        this.years.forEach(year ->
+            IntStream.range(0, NUM_OF_MONTHS)
+                .forEach(i -> {
+                    // prepare current loop variables
+                    final String month = StringUtils.leftPad(Integer.toString(i + 1), 2, '0');
+                    final String index = year + "-" + month;
+                    final List<String> currentMonth = new ArrayList<>();
+                    currentMonth.addAll(rawHistory.stream()
+                        .filter(line -> getPatternForMonthAndYear(month, year).matcher(line).find())
+                        .map(l -> l.replace("<\u200Eimage omitted>", "").trim())
+                        .collect(Collectors.toList()));
 
-        IntStream.range(0, monthlyRawHistory.size())
-            .forEach(i -> LOGGER.debug(MarkerFactory.getMarker("47de10f5-5830-4cc5-ba8d-331b8093b743"),
-                (i + 1) + ": " + monthlyRawHistory.get(i)));
+                    // extract messages for current loop
+                    monthlyRawHistory.put(index, currentMonth);
+                    monthlyHistory.put(index, currentMonth.stream()
+                        .map(line -> getPatternForStripping().matcher(line).replaceAll(""))
+                        .collect(Collectors.toList()));
+                    // extract message count for current loop
+                    monthlyMessageCounts.put(index, currentMonth.size());
+                    // cue.language word counting for current loop
+                    final Counter<String> words = new Counter<>();
+                    new WordIterator(currentMonth.parallelStream()
+                        .collect(Collectors.joining()))
+                        .forEach(words::note);
+                    monthlyWordCounts.put(index, words.getTotalItemCount());
+                    // cue.language count sentences for current loop
+                    final Counter<String> sentences = new Counter<>();
+                    new SentenceIterator(currentMonth.parallelStream()
+                        .collect(Collectors.joining()), locale)
+                        .forEach(sentences::note);
+                    monthlySentenceCounts.put(index, sentences.getTotalItemCount());
+                })
+        );
+
+        monthlyHistory.forEach((k, v) ->
+            LOGGER.debug(MarkerFactory.getMarker("d2bcdc30-dbd9-4ec1-8542-c4e43f06755f"),
+                k + ": " + v.stream().collect(Collectors.joining(", "))));
     }
 
     /**
@@ -119,6 +123,16 @@ public class Person {
      */
     private Pattern getPatternForMonth(final String month) {
         return Pattern.compile("^\\d\\d/" + month + "/\\d{4}[:, \\d]+" + name + ": .*");
+    }
+
+    /**
+     * Pattern to split the history into month long lists.
+     *
+     * @param month the month as leftpadded string (01 to 12)
+     * @return the pattern
+     */
+    private Pattern getPatternForMonthAndYear(final String month, final String year) {
+        return Pattern.compile("^\\d\\d/" + month + "/" + year + "[:, \\d]+" + name + ": .*");
     }
 
     /**
@@ -159,6 +173,27 @@ public class Person {
     }
 
     /**
+     * Checks whether the given years is valid, i.e. not empty and only contains years in the yyyy format.
+     *
+     * @param years the name to check
+     * @return the checked years
+     */
+    private List<String> validateYears(final List<String> years) {
+        if (years == null || years.isEmpty()) {
+            throw new InvalidParameterException("The years may not be empty.");
+        }
+
+        /*final List<String> tempYears = years;
+        tempYears.removeIf(year -> Pattern.compile("^[\\d]{4}$").matcher(year).find());
+
+        if (!tempYears.isEmpty()) {
+            throw new InvalidParameterException("The years may not not contain years in a format other than 'yyyy'");
+        } */
+
+        return years;
+    }
+
+    /**
      * The name of the person.
      *
      * @return the name.
@@ -168,9 +203,18 @@ public class Person {
     }
 
     /**
+     * The years.
+     *
+     * @return the years
+     */
+    public List<String> getYears() {
+        return years;
+    }
+
+    /**
      * The raw history.
      *
-     * @return the history.
+     * @return the history
      */
     public List<String> getRawHistory() {
         return rawHistory;
@@ -179,73 +223,73 @@ public class Person {
     /**
      * The monthly raw history.
      *
-     * @return the monthly history.
+     * @return the monthly history
      */
-    public List<List<String>> getMonthlyRawHistory() {
+    public Map<String, List<String>> getMonthlyRawHistory() {
         return monthlyRawHistory;
     }
 
     /**
      * The monthly history stripped of the date, time: author: prefix.
      *
-     * @return the monthly history.
+     * @return the monthly history
      */
-    public List<List<String>> getMonthlyHistory() {
+    public Map<String, List<String>> getMonthlyHistory() {
         return monthlyHistory;
     }
 
     /**
      * The monthly message counts.
      *
-     * @return the counts.
+     * @return the counts
      */
-    public List<Integer> getMonthlyMessageCounts() {
+    public Map<String, Integer> getMonthlyMessageCounts() {
         return monthlyMessageCounts;
     }
 
     /**
      * The monthly word counts.
      *
-     * @return the counts.
+     * @return the counts
      */
-    public List<Integer> getMonthlyWordCounts() {
+    public Map<String, Integer> getMonthlyWordCounts() {
         return monthlyWordCounts;
     }
 
     /**
      * The monthly sentence counts.
      *
-     * @return the counts.
+     * @return the counts
      */
-    public List<Integer> getMonthlySentenceCounts() {
+    public Map<String, Integer> getMonthlySentenceCounts() {
         return monthlySentenceCounts;
     }
 
     /**
      * The total number of messages.
      *
-     * @return the count.
+     * @return the count
      */
     public int getTotalMessageCount() {
-        return monthlyMessageCounts.parallelStream().reduce(0, (a, b) -> a + b);
+        return monthlyMessageCounts.values().parallelStream().reduce(0, (a, b) -> a + b);
     }
 
     /**
      * The total number of words.
      *
-     * @return the count.
+     * @return the count
      */
     public int getTotalWordCount() {
-        return monthlyWordCounts.parallelStream().reduce(0, (a, b) -> a + b);
+        return monthlyWordCounts.values().parallelStream().reduce(0, (a, b) -> a + b);
     }
 
     /**
      * The total number of sentences.
      *
-     * @return the count.
+     * @return the count
      */
     public int getTotalSentenceCount() {
-        return monthlySentenceCounts.parallelStream().reduce(0, (a, b) -> a + b);
+        return monthlySentenceCounts.values().parallelStream().reduce(0, (a, b) -> a + b);
     }
 
     @Override
@@ -255,15 +299,28 @@ public class Person {
             .append("totalMessageCount", getTotalMessageCount())
             .append("totalWordCount", getTotalWordCount())
             .append("totalSentenceCount", getTotalSentenceCount())
-            .append("monthlyMessageCounts", listToString(monthlyMessageCounts))
-            .append("monthlyWordCounts", listToString(monthlyWordCounts))
-            .append("monthlySentenceCounts", listToString(monthlySentenceCounts))
+            .append("monthlyMessageCounts", mapToString(monthlyMessageCounts))
+            .append("monthlyWordCounts", mapToString(monthlyWordCounts))
+            .append("monthlySentenceCounts", mapToString(monthlySentenceCounts))
             .toString();
     }
 
     private String listToString(final List<?> list) {
-        return "[" + list.parallelStream()
+        return "[" + list.stream()
             .map(Object::toString)
             .collect(Collectors.joining(", ")) + "]";
+    }
+
+    private String mapToString(final Map<?, ?> map) {
+        StringBuilder b = new StringBuilder();
+
+        map.forEach((k, v) -> {
+            b.append(k);
+            b.append(": ");
+            b.append(v);
+            b.append(", ");
+        });
+
+        return "{" + b.toString() + " }";
     }
 }
