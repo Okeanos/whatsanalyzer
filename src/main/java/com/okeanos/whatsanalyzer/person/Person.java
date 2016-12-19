@@ -6,9 +6,6 @@ import cue.lang.WordIterator;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MarkerFactory;
 
 import java.security.InvalidParameterException;
 import java.util.*;
@@ -21,10 +18,10 @@ import java.util.stream.IntStream;
  */
 public class Person {
 
-    /**
+    /*
      * the logger.
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(Person.class);
+    //private static final Logger LOGGER = LoggerFactory.getLogger(Person.class);
     /**
      * number of months.
      */
@@ -45,35 +42,37 @@ public class Person {
     /**
      * The chat history split into years, months, one list of strings per year-month.
      */
-    private final Map<String, List<String>> monthlyRawHistory = new HashMap<>();
+    private final Map<String, List<String>> monthlyRawHistory = new TreeMap<>();
     /**
      * The chat history split into years, months, one list of strings per year-month with date, time: author: stripped.
      */
-    private final Map<String, List<String>> monthlyHistory = new HashMap<>();
+    private final Map<String, List<String>> monthlyHistory = new TreeMap<>();
     /**
      * Number of messages a person sent per year-month.
      */
-    private final Map<String, Integer> monthlyMessageCounts = new HashMap<>();
+    private final Map<String, Integer> monthlyMessageCounts = new TreeMap<>();
     /**
      * Number of words written per year-month.
      */
-    private final Map<String, Integer> monthlyWordCounts = new HashMap<>();
+    private final Map<String, Integer> monthlyWordCounts = new TreeMap<>();
     /**
      * Number of sentences written per year-month.
      */
-    private final Map<String, Integer> monthlySentenceCounts = new HashMap<>();
+    private final Map<String, Integer> monthlySentenceCounts = new TreeMap<>();
 
     /**
      * Create statistics for the person in the history.
      *
      * @param name    name to build the statistics for
+     * @param years   the years to parse in the history
      * @param history the history to parse
+     * @param locale  the locale to use when counting sentences
      */
     public Person(final String name, final List<String> years, final List<String> history, final Locale locale) {
         this.name = validateName(name);
         this.years = validateYears(years);
         rawHistory = validateHistory(history).stream().
-            filter(l -> l.matches("^[\\d:/, ]+" + name + ": .*"))
+            filter(l -> l != null && l.matches("^[\\d:/, ]+" + name + ": .*"))
             .collect(Collectors.toList());
 
         this.years.forEach(year ->
@@ -109,20 +108,6 @@ public class Person {
                     monthlySentenceCounts.put(index, sentences.getTotalItemCount());
                 })
         );
-
-        monthlyHistory.forEach((k, v) ->
-            LOGGER.debug(MarkerFactory.getMarker("d2bcdc30-dbd9-4ec1-8542-c4e43f06755f"),
-                k + ": " + v.stream().collect(Collectors.joining(", "))));
-    }
-
-    /**
-     * Pattern to split the history into month long lists.
-     *
-     * @param month the month as leftpadded string (01 to 12)
-     * @return the pattern
-     */
-    private Pattern getPatternForMonth(final String month) {
-        return Pattern.compile("^\\d\\d/" + month + "/\\d{4}[:, \\d]+" + name + ": .*");
     }
 
     /**
@@ -183,12 +168,11 @@ public class Person {
             throw new InvalidParameterException("The years may not be empty.");
         }
 
-        /*final List<String> tempYears = years;
-        tempYears.removeIf(year -> Pattern.compile("^[\\d]{4}$").matcher(year).find());
-
-        if (!tempYears.isEmpty()) {
-            throw new InvalidParameterException("The years may not not contain years in a format other than 'yyyy'");
-        } */
+        years.forEach(year -> {
+            if (year == null || year.length() > 4 || !Pattern.compile("^[\\d]{4}$").matcher(year).find()) {
+                throw new InvalidParameterException("The years may not be empty.");
+            }
+        });
 
         return years;
     }
@@ -305,14 +289,8 @@ public class Person {
             .toString();
     }
 
-    private String listToString(final List<?> list) {
-        return "[" + list.stream()
-            .map(Object::toString)
-            .collect(Collectors.joining(", ")) + "]";
-    }
-
     private String mapToString(final Map<?, ?> map) {
-        StringBuilder b = new StringBuilder();
+        final StringBuilder b = new StringBuilder();
 
         map.forEach((k, v) -> {
             b.append(k);
@@ -321,6 +299,6 @@ public class Person {
             b.append(", ");
         });
 
-        return "{" + b.toString() + " }";
+        return "[" + b.toString() + " ]";
     }
 }

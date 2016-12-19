@@ -2,7 +2,10 @@
   <option name="LINE_SEPARATOR" value="&#xA;" />
   <option name="GENERATE_FINAL_PARAMETERS" value="true" />
   <codeStyleSettings language="JAVA">
+    <option name="RIGHT_MARGIN" value="120" />
     <option name="ALIGN_MULTILINE_BINARY_OPERATION" value="true" />
     <option name="BINARY_OPERATION_SIGN_ON_NEXT_LINE" value="true" />
+    <option name="WRAP_LONG_LINES" value="true" />
+    <option name="WRAP_ON_TYPING" value="1" />
   </codeStyleSettings>
 </code_scheme>
