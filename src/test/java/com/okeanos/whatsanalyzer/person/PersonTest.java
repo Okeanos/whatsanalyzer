@@ -5,7 +5,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.security.InvalidParameterException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -152,6 +157,8 @@ public class PersonTest {
         assertThat("Name is not correct", person.getName(), equalTo(PERSON_A));
         assertThat("Raw history is not correct", person.getRawHistory(),
             equalTo(RAW_MESSAGES_PERSON_A));
+        assertThat("Years are not correct", person.getYears(),
+            equalTo(YEARS));
         assertThat("Raw monthly history is not correct", person.getMonthlyRawHistory(),
             equalTo(RAW_MESSAGES_PERSON_A_MONTHLY));
         assertThat("Monthly history is not correct", person.getMonthlyHistory(),

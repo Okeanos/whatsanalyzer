@@ -34,7 +34,8 @@ public final class Main {
     }
 
     /**
-     * The application entry point.
+     * The application entry point. Parameters are:
+     * "path to file" "year[, year]" "Name of Person 1" "Name of Person 2" "Name of Person 3"
      *
      * @param args the arguments
      */
