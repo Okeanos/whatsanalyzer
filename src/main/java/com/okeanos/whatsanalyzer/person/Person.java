@@ -63,6 +63,10 @@ public class Person {
      * Number of sentences written per year-month.
      */
     private final Map<String, Integer> monthlySentenceCounts = new TreeMap<>();
+    /**
+     * The Year pattern in a WhatsApp message.
+     */
+    private static final Pattern YEAR_PATTERN = Pattern.compile("^[\\d]{4}$", Pattern.UNICODE_CHARACTER_CLASS);
 
     /**
      * Create statistics for the person in the history.
@@ -75,10 +79,17 @@ public class Person {
     public Person(final String name, final List<String> years, final List<String> history, final Locale locale) {
         this.name = validateName(name);
         this.years = validateYears(years);
+
+        Pattern personLinePattern = getPatternLine();
+
         rawHistory = validateHistory(history).stream().
-            filter(l -> l != null && l.matches("^[\\d:/, ]+" + name + ": .*"))
+            filter(l -> l != null && personLinePattern.matcher(l).matches())
             .collect(Collectors.toList());
 
+        parseLog(locale);
+    }
+
+    private void parseLog(final Locale locale) {
         this.years.forEach(year ->
             IntStream.range(0, NUM_OF_MONTHS)
                 .forEach(i -> {
@@ -100,13 +111,14 @@ public class Person {
                     monthlyMessageCounts.put(index, currentMonth.size());
                     // cue.language word counting for current loop
                     final Counter<String> words = new Counter<>();
-                    new WordIterator(currentMonth.parallelStream()
+                    //@TODO Compare with Unicode Patterns using the Unicode compile flag and \b and/or \w patterns.
+                    new WordIterator(currentMonth.stream()
                         .collect(Collectors.joining()))
                         .forEach(words::note);
                     monthlyWordCounts.put(index, words.getTotalItemCount());
                     // cue.language count sentences for current loop
                     final Counter<String> sentences = new Counter<>();
-                    new SentenceIterator(currentMonth.parallelStream()
+                    new SentenceIterator(currentMonth.stream()
                         .collect(Collectors.joining()), locale)
                         .forEach(sentences::note);
                     monthlySentenceCounts.put(index, sentences.getTotalItemCount());
@@ -121,7 +133,16 @@ public class Person {
      * @return the pattern
      */
     private Pattern getPatternForMonthAndYear(final String month, final String year) {
-        return Pattern.compile("^\\d\\d/" + month + "/" + year + "[:, \\d]+" + name + ": .*");
+        return Pattern.compile("^\\d\\d/" + month + "/" + year + "[:, \\d]+" + name + ": .*", Pattern.UNICODE_CHARACTER_CLASS);
+    }
+
+    /**
+     * Pattern to matching the person's lines.
+     *
+     * @return the pattern
+     */
+    private Pattern getPatternLine() {
+        return Pattern.compile("^[\\d:/, ]+" + name + ": .*", Pattern.UNICODE_CHARACTER_CLASS);
     }
 
     /**
@@ -130,7 +151,7 @@ public class Person {
      * @return the pattern
      */
     private Pattern getPatternForStripping() {
-        return Pattern.compile("^[\\d:/, ]+" + name + ": ");
+        return Pattern.compile("^[\\d:/, ]+" + name + ": ", Pattern.UNICODE_CHARACTER_CLASS);
     }
 
     /**
@@ -140,7 +161,7 @@ public class Person {
      * @return the checked name
      */
     private String validateName(final String name) {
-        if (name == null || name.trim().isEmpty()) {
+        if (StringUtils.isBlank(name)) {
             throw new InvalidParameterException("The name may not be empty.");
         }
 
@@ -173,7 +194,7 @@ public class Person {
         }
 
         years.forEach(year -> {
-            if (year == null || year.length() > 4 || !Pattern.compile("^[\\d]{4}$").matcher(year).find()) {
+            if (year == null || year.length() > 4 || !YEAR_PATTERN.matcher(year).find()) {
                 throw new InvalidParameterException("The years may not be empty.");
             }
         });
@@ -259,7 +280,7 @@ public class Person {
      * @return the count
      */
     public int getTotalMessageCount() {
-        return monthlyMessageCounts.values().parallelStream().reduce(0, (a, b) -> a + b);
+        return monthlyMessageCounts.values().stream().reduce(0, (a, b) -> a + b);
     }
 
     /**
@@ -268,7 +289,7 @@ public class Person {
      * @return the count
      */
     public int getTotalWordCount() {
-        return monthlyWordCounts.values().parallelStream().reduce(0, (a, b) -> a + b);
+        return monthlyWordCounts.values().stream().reduce(0, (a, b) -> a + b);
     }
 
     /**
@@ -277,7 +298,7 @@ public class Person {
      * @return the count
      */
     public int getTotalSentenceCount() {
-        return monthlySentenceCounts.values().parallelStream().reduce(0, (a, b) -> a + b);
+        return monthlySentenceCounts.values().stream().reduce(0, (a, b) -> a + b);
     }
 
     @Override

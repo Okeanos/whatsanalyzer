@@ -23,37 +23,46 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.5'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.8'
     compile group: 'org.slf4j', name: 'log4j-over-slf4j', version: '1.7.22'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.6'
     compile files('libs/cue.language.jar')
+}
+
+checkstyle {
+    configFile = new File(rootDir, 'config/checkstyle/checkstyle.xml')
+    configProperties = [checkstyle_suppressions_file: "${rootDir}/config/checkstyle/checkstyle-suppressions.xml"]
+    toolVersion = '8.0'
+}
+
+findbugs {
+    toolVersion = '3.0.1'
+}
+
+tasks.withType(FindBugs) {
+    reports {
+        xml.enabled = true
+        html.enabled = false
+    }
+}
+
+pmd {
+    ruleSetFiles = files("$rootDir/config/pmd/pmd.xml")
+    toolVersion = '5.8.1'
 }
 
 cpd {
     language = 'java'
-    toolVersion = '5.5.2'
+    toolVersion = '5.8.1'
+    ignoreFailures = true
 }
 
 cpdCheck {
     encoding = 'utf-8'
+    source = sourceSets.main.allJava
     minimumTokenCount = 50
     reports {
         text.enabled = false
         xml.enabled = true
     }
-}
-
-pmd {
-    ruleSetFiles = files('config/pmd/pmd.xml')
-    ruleSets = []
-    toolVersion = '5.5.2'
-}
-
-findbugs {
-    excludeFilter = file('config/findbugs/findbugs-exclude.xml')
-    toolVersion = '3.0.1'
-}
-
-checkstyle {
-    configProperties.checkstyleConfigDir = new File('${project.buildDir}/config/checkstyle', 'checkstyle')
-    toolVersion = '7.2'
 }
 
 jar {
